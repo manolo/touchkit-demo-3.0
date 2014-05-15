@@ -68,6 +68,17 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         }
     };
 
+    /**
+     * Check if the server is reachable, and set status to offline/online.
+     */
+    public void ping() {
+        if (onlineApp != null) {
+            onlineApp.getHeartbeat().send();
+        } else {
+            pingToServer.run();
+        }
+    }
+
     public void forceOffline(ActivationEvent event) {
         logger.severe("Going offline due to a force offline call.");
         setForcedOffline(true);
@@ -170,57 +181,57 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      */
     private native void configureApplicationOfflineEvents() /*-{
         var _this = this;
-        var noNetwork =  @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode::NO_NETWORK;
-        var byRequest =  @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode::ACTIVATED_BY_REQUEST;
+
+        function ping() {
+          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::ping()();
+        }
+        function offline() {
+          var ev = @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode::NO_NETWORK;
+          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(ev);
+        }
+        function resume() {
+          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
+        }
 
         // Export a couple of functions for allowing developer to set offline manually in JS console
         $wnd.tkGoOffline = function() {
-          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forceOffline(*)(byRequest);
+          var ev = @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode::ACTIVATED_BY_REQUEST;
+          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forceOffline(*)(ev);
         }
         $wnd.tkGoOnline = function() {
           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forceOnline()();
         }
 
         // Listen to HTML5 offline-online events
-        $wnd.addEventListener("offline", function(e) {
-          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
-        }, false);
-        $wnd.addEventListener("online", function(e) {
-          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
-        }, false);
+        $wnd.addEventListener("offline", ping, false);
+        $wnd.addEventListener("online", resume, false);
 
         // use HTML5 to test whether connection is available when the app starts
         if ($wnd.navigator.onLine != undefined && !$wnd.navigator.onLine) {
-          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
+          offline();
         }
 
         // use hash fragment to go online-offline, it is useful when the
         // application is embedded in an iframe so as the parent
         // can pass network status messages to the iframe.
         $wnd.addEventListener("popstate", function(e) {
-          switch ($wnd.location.hash) {
-            case "#offline":
-              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
-              break;
-            case "#online":
-              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
+          if ($wnd.location.hash == '#offline') {
+            ping();
+          } else if ($wnd.location.hash == '#online') {
+            ping();
           }
         }, false);
         if ($wnd.location.hash == "#offline") {
-           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
+           offline();
         }
 
         // Listen to Cordova specific online/off-line stuff
         if ($wnd.navigator.network && $wnd.navigator.network.connection && $wnd.Connection) {
-            $doc.addEventListener("offline", function(e) {
-              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
-            }, false);
-            $doc.addEventListener("online", function(e) {
-              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume(*)(null);
-            }, false);
+            $doc.addEventListener("offline", ping, false);
+            $doc.addEventListener("online", resume, false);
             // use Cordova to test whether connection is available when the app starts
             if ($wnd.navigator.network.connection.type == $wnd.Connection.NONE) {
-              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
+              offline();
             }
         }
     }-*/;

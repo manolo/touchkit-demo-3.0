@@ -1,6 +1,7 @@
 package com.vaadin.addon.touchkit.gwt.client.offlinemode;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
@@ -40,6 +41,13 @@ public class DefaultOfflineMode implements OfflineMode {
 
         overlay.addStyleName("v-window");
         overlay.addStyleName("v-touchkit-offlinemode");
+
+        // Make sure that the outer and containers have 100% sizes
+        overlay.getElement().getStyle().setWidth(100, Unit.PCT);
+        overlay.getElement().getStyle().setHeight(100, Unit.PCT);
+        overlay.setWidth("100%");
+        overlay.setHeight("100%");
+
         // Make sure this is overloading the indicator
         overlay.getElement().getStyle().setZIndex(Z_INDEX);
         overlay.add(flowPanel);
@@ -66,8 +74,6 @@ public class DefaultOfflineMode implements OfflineMode {
         activationEvent = event;
         buildDefaultContent();
         overlay.show();
-        overlay.setWidth(Window.getClientWidth() + "px");
-        overlay.setHeight(Window.getClientHeight() + "px");
     }
 
     /**
