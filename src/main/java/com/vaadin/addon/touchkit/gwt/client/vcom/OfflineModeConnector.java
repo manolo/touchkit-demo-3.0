@@ -1,12 +1,10 @@
 package com.vaadin.addon.touchkit.gwt.client.vcom;
 
-
 import java.util.Date;
 
 import com.google.gwt.user.client.Cookies;
 import com.google.gwt.user.client.Timer;
-import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.ActivationReason;
-import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeActivationEventImpl;
+import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint;
 import com.vaadin.client.ApplicationConnection.CommunicationHandler;
 import com.vaadin.client.ApplicationConnection.RequestStartingEvent;
@@ -32,10 +30,7 @@ public class OfflineModeConnector extends AbstractExtensionConnector implements
     private Timer requestTimeoutTracker = new Timer() {
         @Override
         public void run() {
-            offlineEntrypoint.goOffline(new OfflineModeActivationEventImpl(
-                    "The response from the server seems to take a very long time. "
-                            + "Either the server is down or there's a network issue.",
-                    ActivationReason.BAD_RESPONSE));
+            offlineEntrypoint.goOffline(OfflineMode.BAD_RESPONSE);
         }
         public void cancel() {
             super.cancel();
@@ -58,9 +53,7 @@ public class OfflineModeConnector extends AbstractExtensionConnector implements
             registerRpc(OfflineModeClientRpc.class, new OfflineModeClientRpc() {
                 @Override
                 public void goOffline() {
-                    offlineEntrypoint.forceOffline(new OfflineModeActivationEventImpl(
-                            "Offline mode started by a request.",
-                            ActivationReason.ACTIVATED_BY_SERVER));
+                    offlineEntrypoint.forceOffline(OfflineMode.ACTIVATED_BY_REQUEST);
                 }
                 @Override
                 public void goOnline() {
@@ -69,7 +62,6 @@ public class OfflineModeConnector extends AbstractExtensionConnector implements
             });
         }
     }
-
 
     /**
      * @deprecated use OfflineModeEntrypoint.get().isOnline() instead

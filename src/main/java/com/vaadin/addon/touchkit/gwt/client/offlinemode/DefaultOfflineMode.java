@@ -1,12 +1,15 @@
 package com.vaadin.addon.touchkit.gwt.client.offlinemode;
 
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.Style;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.Window.Location;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
+import com.vaadin.client.ApplicationConfiguration;
+import com.vaadin.client.ui.VNativeButton;
 import com.vaadin.client.ui.VOverlay;
 
 /**
@@ -23,11 +26,11 @@ import com.vaadin.client.ui.VOverlay;
 public class DefaultOfflineMode implements OfflineMode {
 
     protected static final int Z_INDEX = 30001;
-    private FlowPanel flowPanel;
-    private VOverlay overlay;
-    private String activationMessage;
+    private FlowPanel flowPanel = new FlowPanel();
+    private VOverlay overlay = new VOverlay();
     private boolean active;
-    private OfflineModeMessages msg;
+    private OfflineModeMessages msg = GWT.create(OfflineModeMessages.class);
+    private ActivationEvent activationEvent;
 
     /**
      * Returns the panel created by default activate function. Extended offline
@@ -47,13 +50,12 @@ public class DefaultOfflineMode implements OfflineMode {
     @Override
     public void activate(ActivationEvent event) {
         active = true;
-        activationMessage = event.getActivationMessage();
-        overlay = new VOverlay();
+        activationEvent = event;
+
         overlay.addStyleName("v-window");
         overlay.addStyleName("v-touchkit-offlinemode");
-        Style style = overlay.getElement().getStyle();
-        style.setZIndex(Z_INDEX); // Make sure this is overloading the indicator
-        flowPanel = new FlowPanel();
+        // Make sure this is overloading the indicator
+        overlay.getElement().getStyle().setZIndex(Z_INDEX);
         overlay.add(flowPanel);
 
         buildDefaultContent();
@@ -75,7 +77,7 @@ public class DefaultOfflineMode implements OfflineMode {
      *         {@link #activate(ActivationEvent)} method.
      */
     public String getActivationMessage() {
-        return activationMessage;
+        return activationEvent.getActivationMessage();
     }
 
     /**
@@ -86,23 +88,19 @@ public class DefaultOfflineMode implements OfflineMode {
      * {@link #getPanel()} method.
      */
     protected void buildDefaultContent() {
-        msg = GWT.create(OfflineModeMessages.class);
-
-        FlowPanel fp = new FlowPanel();
-        getPanel().add(fp);
-        fp.setStyleName("v-touchkit-offlinemode-panel");
-        StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"v-touchkit-sadface\">:-(</div>");
-        sb.append("<h1>");
-        sb.append(msg.serverCannotBeReachedMsg());
-        sb.append("</h1>");
-        sb.append("<p>");
-        sb.append(getActivationMessage());
-        sb.append("</p>");
-
-        fp.add(new HTML(sb.toString()));
-
-        fp.add(new Label(msg.offlineDueToNetworkMsg()));
+        String html;
+        if (activationEvent.getActivationReason() == ActivationReason.APP_STARTING) {
+            html = "<h1>Loading ...</h1>";
+        } else {
+            html = "<div class=\"v-touchkit-sadface\">:-(</div><h1>"
+                    + msg.serverCannotBeReachedMsg() + "</h1><p>"
+                    + getActivationMessage() + "</p><div>"
+                    + msg.offlineDueToNetworkMsg() + "</div>";
+        }
+        getPanel().clear();
+        HTML h = new HTML(html);
+        h.setStyleName("v-touchkit-offlinemode-panel");
+        getPanel().add(h);
     }
 
     /**
@@ -111,8 +109,31 @@ public class DefaultOfflineMode implements OfflineMode {
     @Override
     public boolean deactivate() {
         active = false;
-        // Hide the floating overlay
-        overlay.hide();
+        if (ApplicationConfiguration.getRunningApplications().isEmpty()) {
+            // If vaadin app was never loaded, we have to ask the user 
+            // to reload the app instead
+            getPanel().clear();
+
+            FlowPanel fp = new FlowPanel();
+            fp.setStyleName("v-touchkit-offlinemode-panel");
+            getPanel().add(fp);
+
+            fp.add(new HTML("<h1>" + msg.networkBack() + "<h1>"));
+
+            VNativeButton vButton = new VNativeButton();
+            vButton.setText(msg.reload());
+            vButton.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
+                    overlay.hide();
+                    Location.reload();
+                }
+            });
+            fp.add(vButton);
+
+        } else {
+            // Hide the floating overlay
+            overlay.hide();
+        }
         return true;
     }
 
