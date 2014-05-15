@@ -26,11 +26,24 @@ import com.vaadin.client.ui.VOverlay;
 public class DefaultOfflineMode implements OfflineMode {
 
     protected static final int Z_INDEX = 30001;
-    private FlowPanel flowPanel = new FlowPanel();
-    private VOverlay overlay = new VOverlay();
+    private FlowPanel flowPanel;
+    private VOverlay overlay;
     private boolean active;
-    private OfflineModeMessages msg = GWT.create(OfflineModeMessages.class);
+    private OfflineModeMessages msg;
     private ActivationEvent activationEvent;
+
+    public DefaultOfflineMode() {
+        active = false;
+        flowPanel = new FlowPanel();
+        overlay = new VOverlay();
+        msg = GWT.create(OfflineModeMessages.class);
+
+        overlay.addStyleName("v-window");
+        overlay.addStyleName("v-touchkit-offlinemode");
+        // Make sure this is overloading the indicator
+        overlay.getElement().getStyle().setZIndex(Z_INDEX);
+        overlay.add(flowPanel);
+    }
 
     /**
      * Returns the panel created by default activate function. Extended offline
@@ -51,15 +64,7 @@ public class DefaultOfflineMode implements OfflineMode {
     public void activate(ActivationEvent event) {
         active = true;
         activationEvent = event;
-
-        overlay.addStyleName("v-window");
-        overlay.addStyleName("v-touchkit-offlinemode");
-        // Make sure this is overloading the indicator
-        overlay.getElement().getStyle().setZIndex(Z_INDEX);
-        overlay.add(flowPanel);
-
         buildDefaultContent();
-
         overlay.show();
         overlay.setWidth(Window.getClientWidth() + "px");
         overlay.setHeight(Window.getClientHeight() + "px");
@@ -97,10 +102,40 @@ public class DefaultOfflineMode implements OfflineMode {
                     + getActivationMessage() + "</p><div>"
                     + msg.offlineDueToNetworkMsg() + "</div>";
         }
+
         getPanel().clear();
         HTML h = new HTML(html);
         h.setStyleName("v-touchkit-offlinemode-panel");
         getPanel().add(h);
+    }
+
+    /**
+     * This method is called by the default {@link #deactivate()}
+     * implementation to build the contents of this overlay when the
+     * device goes online and the online app was not loaded previously.
+     * 
+     * The simplest method to customize this view mode is to override
+     * this method and add a custom app to the panel returned by the
+     * {@link #getPanel()} method.
+     */
+    protected void buildReloadContent() {
+        getPanel().clear();
+
+        FlowPanel fp = new FlowPanel();
+        getPanel().add(fp);
+
+        fp.setStyleName("v-touchkit-offlinemode-panel");
+        fp.add(new HTML("<h1>" + msg.networkBack() + "<h1>"));
+
+        VNativeButton vButton = new VNativeButton();
+        vButton.setText(msg.reload());
+        vButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
+                overlay.hide();
+                Location.reload();
+            }
+        });
+        fp.add(vButton);
     }
 
     /**
@@ -110,31 +145,14 @@ public class DefaultOfflineMode implements OfflineMode {
     public boolean deactivate() {
         active = false;
         if (ApplicationConfiguration.getRunningApplications().isEmpty()) {
-            // If vaadin app was never loaded, we have to ask the user 
-            // to reload the app instead
-            getPanel().clear();
+            // If online app was never loaded, we ask the user
 
-            FlowPanel fp = new FlowPanel();
-            fp.setStyleName("v-touchkit-offlinemode-panel");
-            getPanel().add(fp);
-
-            fp.add(new HTML("<h1>" + msg.networkBack() + "<h1>"));
-
-            VNativeButton vButton = new VNativeButton();
-            vButton.setText(msg.reload());
-            vButton.addClickHandler(new ClickHandler() {
-                public void onClick(ClickEvent event) {
-                    overlay.hide();
-                    Location.reload();
-                }
-            });
-            fp.add(vButton);
-
+            // to reload the app.
+            buildReloadContent();
         } else {
             // Hide the floating overlay
             overlay.hide();
         }
         return true;
     }
-
 }

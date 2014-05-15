@@ -194,6 +194,22 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
         }
 
+        // use hash fragment to go online-offline, it is useful when the
+        // application is embedded in an iframe so as the parent
+        // can pass network status messages to the iframe.
+        $wnd.addEventListener("popstate", function(e) {
+          switch ($wnd.location.hash) {
+            case "#offline":
+              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
+              break;
+            case "#online":
+              _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
+          }
+        }, false);
+        if ($wnd.location.hash == "#offline") {
+           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(noNetwork);
+        }
+
         // Listen to Cordova specific online/off-line stuff
         if ($wnd.navigator.network && $wnd.navigator.network.connection && $wnd.Connection) {
             $doc.addEventListener("offline", function(e) {
