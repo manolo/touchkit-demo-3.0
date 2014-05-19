@@ -18,7 +18,7 @@ public class DemoAppFallbackUI extends UI {
         HorizontalLayout layout = new HorizontalLayout();
         layout.setSpacing(true);
         layout.setMargin(true);
-        
+
         Button button = new Button("Continue anyway.", new Button.ClickListener() {
             @Override
             public void buttonClick(Button.ClickEvent event) {
@@ -27,10 +27,10 @@ public class DemoAppFallbackUI extends UI {
             }
         });
         button.addStyleName("link");
-        
+
         layout.addComponent(new Label("You seem to be using a desktop browser."));
         layout.addComponent(button);
-        
+
         setContent(layout);
     }
 

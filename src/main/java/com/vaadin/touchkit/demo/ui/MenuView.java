@@ -11,13 +11,13 @@ public class MenuView extends NavigationView {
 
     public MenuView() {
         setCaption("Menu");
-        
+
         final VerticalComponentGroup content = new VerticalComponentGroup();
         NavigationButton button = new NavigationButton("Form");
         button.addClickListener(new NavigationButtonClickListener() {
             @Override
             public void buttonClick(NavigationButtonClickEvent event) {
-                getNavigationManager().navigateTo(new FormView());                
+                getNavigationManager().navigateTo(new FormView());
             }
         });
         content.addComponent(button);
