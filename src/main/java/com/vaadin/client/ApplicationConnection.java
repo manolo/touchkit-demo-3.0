@@ -43,6 +43,7 @@ import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.event.shared.EventHandler;
 import com.google.gwt.event.shared.GwtEvent;
 import com.google.gwt.event.shared.HandlerRegistration;
+import com.google.gwt.event.shared.HasHandlers;
 import com.google.gwt.event.shared.SimpleEventBus;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
@@ -65,7 +66,6 @@ import com.google.gwt.user.client.Window.ClosingHandler;
 import com.google.gwt.user.client.ui.HasWidgets;
 import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.client.ApplicationConfiguration.ErrorMessage;
-import com.vaadin.client.ApplicationConnection.ConnectionStatusEvent.ConnectionStatusHandler;
 import com.vaadin.client.ResourceLoader.ResourceLoadEvent;
 import com.vaadin.client.ResourceLoader.ResourceLoadListener;
 import com.vaadin.client.communication.HasJavaScriptConnectorHelper;
@@ -120,7 +120,7 @@ import com.vaadin.shared.ui.ui.UIState.PushConfigurationState;
  * 
  * Entry point classes (widgetsets) define <code>onModuleLoad()</code>.
  */
-public class ApplicationConnection {
+public class ApplicationConnection implements HasHandlers {
 
     /**
      * Helper used to return two values when updating the connector hierarchy.
@@ -342,6 +342,13 @@ public class ApplicationConnection {
 
     }
 
+    /**
+     * Event triggered when a XHR request has finished with the status code
+     * of the response.
+     * 
+     * Useful for handlers observing network failures like online/off-line
+     * monitors.
+     */
     public static class ConnectionStatusEvent extends
             GwtEvent<ConnectionStatusEvent.ConnectionStatusHandler> {
         private int status;
@@ -358,7 +365,7 @@ public class ApplicationConnection {
             return status;
         }
 
-        public static Type<ConnectionStatusHandler> TYPE = new Type<ConnectionStatusHandler>();
+        public final static Type<ConnectionStatusHandler> TYPE = new Type<ConnectionStatusHandler>();
 
         @Override
         public Type<ConnectionStatusHandler> getAssociatedType() {
@@ -865,6 +872,8 @@ public class ApplicationConnection {
                                 - requestStartTime.getTime()) + "ms");
 
                 int statusCode = response.getStatusCode();
+                // Notify network observers about response status
+                fireEvent(new ConnectionStatusEvent(statusCode));
 
                 switch (statusCode) {
                 case 0:
@@ -962,6 +971,7 @@ public class ApplicationConnection {
             } catch (RequestException e) {
                 VConsole.error(e);
                 endRequest();
+                fireEvent(new ConnectionStatusEvent(0));
             }
         }
     }

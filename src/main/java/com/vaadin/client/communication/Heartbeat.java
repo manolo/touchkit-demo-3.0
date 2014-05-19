@@ -95,33 +95,40 @@ public class Heartbeat {
             public void onResponseReceived(Request request, Response response) {
                 int status = response.getStatusCode();
 
+                // Notify network observers about response status
+                connection.fireEvent(new ConnectionStatusEvent(status));
+
                 if (status == Response.SC_OK) {
                     getLogger().fine("Heartbeat response OK");
-                    schedule();
                 } else if (status == 0) {
                     getLogger().warning(
                             "Failed sending heartbeat, server is unreachable, retrying in "
                                     + interval + "secs.");
-                    schedule();
                 } else if (status >= 500) {
                     getLogger().warning(
                             "Failed sending heartbeat, see server logs, retrying in "
                                     + interval + "secs.");
-                    schedule();
                 } else if (status == Response.SC_GONE) {
                     connection.showSessionExpiredError(null);
+                    // If session is expired break the loop
+                    return;
                 } else {
                     getLogger().warning(
                             "Failed sending heartbeat to server. Error code: "
                                     + status);
                 }
 
-                connection.fireEvent(new ConnectionStatusEvent(status));
+                // Don't break the loop
+                schedule();
             }
 
             @Override
             public void onError(Request request, Throwable exception) {
-                getLogger().severe("Exception sending heartbeat: " + exception);
+                getLogger().severe("Exception sending heartbeat: " + exception.getMessage());
+                // Notify network observers about response status
+                connection.fireEvent(new ConnectionStatusEvent(0));
+                // Don't break the loop
+                schedule();
             }
         };
 
