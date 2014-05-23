@@ -1,5 +1,6 @@
 package com.vaadin.touchkit.demo;
 
+import com.vaadin.server.Page;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
@@ -23,7 +24,7 @@ public class DemoAppFallbackUI extends UI {
             @Override
             public void buttonClick(Button.ClickEvent event) {
                 getSession().setAttribute("mobile", true);
-                getUI().getPage().reload();
+                Page.getCurrent().getJavaScript().execute("window.location.reload()");
             }
         });
         button.addStyleName("link");

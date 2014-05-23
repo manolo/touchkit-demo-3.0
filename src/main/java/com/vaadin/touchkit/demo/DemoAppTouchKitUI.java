@@ -6,7 +6,7 @@ import com.vaadin.addon.touchkit.ui.NavigationManager;
 import com.vaadin.addon.touchkit.ui.TabBarView;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Widgetset;
-import com.vaadin.server.FontAwesome;
+//import com.vaadin.server.FontAwesome;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.touchkit.demo.ui.MenuView;
 import com.vaadin.ui.Label;
@@ -29,11 +29,11 @@ public class DemoAppTouchKitUI extends UI {
         navigationManager.setCurrentComponent(new MenuView());
         Tab tab;
         tab = tabBarView.addTab(navigationManager);
-        tab.setIcon(FontAwesome.BOOK);
+        //tab.setIcon(FontAwesome.BOOK);
         tab = tabBarView.addTab(new Label("Tab 2"), "Tab 2");
-        tab.setIcon(FontAwesome.AMBULANCE);
+        //tab.setIcon(FontAwesome.AMBULANCE);
         tab = tabBarView.addTab(new Label("Tab 3"), "Tab 3");
-        tab.setIcon(FontAwesome.DOWNLOAD);
+        //tab.setIcon(FontAwesome.DOWNLOAD);
         setContent(tabBarView);
 
         OfflineMode offlineMode = new OfflineMode();
