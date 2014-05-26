@@ -88,7 +88,10 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         conn.addHandler(ResponseHandlingStartedEvent.TYPE, this);
         conn.addHandler(ResponseHandlingEndedEvent.TYPE, this);
         conn.setCommunicationErrorDelegate(this);
-        resume();
+
+        // If we get the connection means we are online, so we force
+        // online even thought we were online already.
+        forceResume();
     }
 
     // This is a hack, in 7.2 we will have access to the eventBus via ApplicationConnection
@@ -105,6 +108,15 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         return offlineModeApp;
     }
 
+    private void forceResume() {
+        online = false;
+        resume();
+    }
+
+    /**
+     * Go online if we were not, deactivating off-line UI and
+     * reactivating online one.
+     */
     public void resume() {
         if (!online) {
             VConsole.log("Network Back ONLINE");
@@ -123,6 +135,9 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         }
     }
 
+    /**
+     * Go off-line showing off-line UI, or notify it with the last off-line event.
+     */
     public void goOffline(ActivationEvent event) {
         if (lastOfflineEvent == null
                 || lastOfflineEvent.getActivationReason() != event
@@ -144,12 +159,20 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         }
     }
 
+    /**
+     * Synthetic off-line, normally forced from server side or from JS
+     * with the window.tkGoOffline() method.
+     */
     public void forceOffline(ActivationEvent event) {
         VConsole.error("Going offline due to a force offline call.");
         setForcedOffline(true);
         goOffline(event);
     }
 
+    /**
+     * Remove forced offline flag, normally from server side or from JS
+     * calling the window.tkGoOnline() function
+     */
     public void forceOnline() {
         VConsole.error("Going online due to a force online call.");
         setForcedOffline(false);
@@ -159,7 +182,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
     @Override
     public boolean onError(String details, int statusCode) {
         VConsole.error("onError " + details + " " + statusCode);
-
         goOffline(OfflineMode.BAD_RESPONSE);
         return true;
     }
@@ -175,7 +197,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
     @Override
     public void onResponseHandlingEnded(ResponseHandlingEndedEvent e) {
         VConsole.error("onResponseHandlingEnded ");
-
         resume();
     }
 
