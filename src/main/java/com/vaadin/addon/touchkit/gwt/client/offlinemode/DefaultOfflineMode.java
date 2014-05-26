@@ -8,7 +8,6 @@ import com.google.gwt.user.client.Window.Location;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Panel;
-import com.vaadin.client.ApplicationConfiguration;
 import com.vaadin.client.ui.VNativeButton;
 import com.vaadin.client.ui.VOverlay;
 
@@ -112,7 +111,7 @@ public class DefaultOfflineMode implements OfflineMode {
         h.setStyleName("v-touchkit-offlinemode-panel");
         getPanel().add(h);
     }
-    
+
     protected void buildLoadingContent() {
         getPanel().clear();
         HTML h = new HTML("<h1>Loading ...</h1>");
@@ -124,7 +123,7 @@ public class DefaultOfflineMode implements OfflineMode {
      * This method is called by the default {@link #deactivate()}
      * implementation to build the contents of this overlay when the
      * device goes online and the online app was not loaded previously.
-     * 
+     *
      * The simplest method to customize this view mode is to override
      * this method and add a custom app to the panel returned by the
      * {@link #getPanel()} method.
