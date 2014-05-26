@@ -118,7 +118,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      * reactivating online one.
      */
     public void resume() {
-        if (!online) {
+        if (!online && !forcedOffline) {
             VConsole.log("Network Back ONLINE");
             online = true;
             if (offlineModeConn != null) {
@@ -223,8 +223,12 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(ev);
         }
         function online() {
-          console.log(">>> going online.");
-          _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
+          if (!@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline) {
+            console.log(">>> going online.");
+            _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
+          } else {
+            console.log(">>> keep forced off-line.");
+          }
         }
         function check() {
           console.log(">>> ckeck online flag " + $wnd.navigator.onLine);
@@ -239,7 +243,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
               offline();
             } else if (msg == 'cordova-online') {
               online();
-            } // TODO: handle #cordova-pause #cordova-resume messages
+            } // TODO: handle pause & resume messages
             return true;
           }
           return false;
@@ -294,35 +298,9 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         // Sometimes events are not passed to the app because of paused, we use a timer as well.
         setInterval(check, 30000);
 
-        //////////////////////////////////////////////////////////////////////////////////////////
-        //// Everything from here is for phonegap
-        if (!$wnd._cordovaNative && !$wnd._nativeReady) {
-          return;
-        }
-        console.log(">>> This app is embedded in a cordova container.");
-
-        // Use hash fragment to go online-offline, useful when the
-        // application is embedded in a Cordova iframe, so as it
-        // can pass network status messages to the iframe.
-        //
-        // It's a better approach the postMessage below, so we can
-        // remove this when everything is tested with postMessage.
-        $wnd.addEventListener("popstate", function(e) {
-          var hash = $wnd.location.hash;
-          if (hash && message(hash.substring(1))) {
-            // We always go a step back to avoid weird behavior when
-            // pushing the back button in android, and prevent default
-            $wnd.history.back();
-            // Prevent default
-            e.preventDefault();
-            return false;
-          }
-        }, false);
-        // Cordova could have sent offline before the app started.
-        if ($wnd.location.hash == "#cordova-offline") {
-          $wnd.history.back();
-          offline();
-        }
+        ///// CORDOVA //////
+        // These flags only work in android.
+        // if (!$wnd._cordovaNative && !$wnd._nativeReady) {return}
 
         // Use postMessage approach to go online-offline, useful when the
         // application is embedded in a Cordova iframe, so as it
