@@ -288,9 +288,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         // Redefine HTML-5 onLine indicator.
         // This fixes the issue of android inside phonegap returning erroneus values
         // allowing old vaadin apps based on this approach continue working
-        $wnd.navigator.__defineSetter__('onLine', function(b) {
-          online = b;
-        });
+        $wnd.navigator.__defineSetter__('onLine', function() {});
         $wnd.navigator.__defineGetter__('onLine', function() {
           return @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::online &&
                 !@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline;
