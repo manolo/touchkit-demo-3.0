@@ -23,7 +23,7 @@ import com.vaadin.shared.ui.Connect;
 @Connect(com.vaadin.addon.touchkit.extensions.OfflineMode.class)
 public class OfflineModeConnector extends AbstractExtensionConnector implements
         CommunicationHandler, OfflineHandler, OnlineHandler {
-    
+
     private static final String SESSION_COOKIE = "JSESSIONID";
 
     private Timer requestTimeoutTracker = new Timer() {

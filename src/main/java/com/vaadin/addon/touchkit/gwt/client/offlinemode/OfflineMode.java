@@ -65,7 +65,7 @@ public interface OfflineMode {
         /**
          * The offline mode activation was requested in developer console.
          */
-        ACTIVATED_BY_REQUEST,        
+        ACTIVATED_BY_REQUEST,
         /**
          * The reason is unknown.
          */
@@ -99,8 +99,8 @@ public interface OfflineMode {
         ActivationReason getActivationReason();
 
     }
-    
-    
+
+
     /**
      * Event triggered when the device goes online;
      */
@@ -121,7 +121,7 @@ public interface OfflineMode {
             handler.onOnline(this);
         }
     }
-    
+
     /**
      * Event triggered when the device goes off-line;
      */
@@ -129,7 +129,7 @@ public interface OfflineMode {
         public static interface OfflineHandler extends EventHandler {
             public void onOffline(OfflineEvent event);
         }
-        
+
         private ActivationEvent reason;
 
         public ActivationEvent getReason() {
@@ -137,7 +137,7 @@ public interface OfflineMode {
         }
 
         public final static Type<OfflineHandler> TYPE = new Type<OfflineHandler>();
-        
+
         public OfflineEvent(ActivationEvent reason) {
             this.reason = reason;
         }
@@ -159,7 +159,7 @@ public interface OfflineMode {
      * Offline mode can also be activated e.g. due to an inaccessible server,
      * bad responses or as the result of a request by the server side
      * application.
-     * 
+     *
      * @param event
      *            Details about the activation.
      */
@@ -170,12 +170,12 @@ public interface OfflineMode {
      * go online again (e.g. the network connection has returned). The
      * implementation should e.g. remove or hide offline related elements from
      * the document.
-     * 
+     *
      * <p>
      * If you have implemented a more advanced offline mode, override this
      * method and gracefully return to normal operation. In that case return
      * false
-     * 
+     *
      * @return true if offline mode was shut down, false if offline mode was not
      *         shut down
      */
