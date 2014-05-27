@@ -43,7 +43,7 @@ public class OfflineModeConnector extends AbstractExtensionConnector implements
         registerRpc(OfflineModeClientRpc.class, new OfflineModeClientRpc() {
             @Override
             public void goOffline() {
-                offlineEntrypoint.goOffline(OfflineMode.ACTIVATED_BY_SERVER);
+                offlineEntrypoint.forceOffline(OfflineMode.ACTIVATED_BY_SERVER);
             }
         });
     }
