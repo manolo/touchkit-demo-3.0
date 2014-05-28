@@ -4,8 +4,6 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.event.shared.HasHandlers;
-import com.google.gwt.storage.client.Storage;
-import com.google.gwt.user.client.Timer;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.ActivationEvent;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.OfflineEvent;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.OnlineEvent;
@@ -37,10 +35,10 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
     private OfflineModeConnector offlineModeConn = null;
 
     private static boolean online = true;
-    private static boolean forcedOffline = false;
+    private boolean forcedOffline = false;
 
     private ActivationEvent lastOfflineEvent = null;
-    private static HasHandlers eventBus = null;
+    private HasHandlers eventBus = null;
 
     public static boolean isNetworkOnline() {
         return online;
@@ -66,9 +64,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
 
         // Configure HTML5 off-line listeners
         configureApplicationOfflineEvents();
-
-        // restore forcedOffline flag from local-storage
-        restoreForcedOffline();
 
         // We always go off-line at the beginning until we receive
         // a Vaadin online response
@@ -144,7 +139,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
                         .getActivationReason()) {
             VConsole.log("Network OFFLINE (" + event.getActivationReason() + ")");
             online = false;
-            lastOfflineEvent = event;
 
             if (!offlineModeApp.isActive()
                     || lastOfflineEvent != null
@@ -152,6 +146,8 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
                             .getActivationReason()) {
                 offlineModeApp.activate(event);
             }
+            lastOfflineEvent = event;
+
             if (offlineModeConn != null) {
                 offlineModeConn.getConnection().setApplicationRunning(false);
                 eventBus.fireEvent(new OfflineEvent(event));
@@ -165,7 +161,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      */
     public void forceOffline(ActivationEvent event) {
         VConsole.error("Going offline due to a force offline call.");
-        setForcedOffline(true);
+        forcedOffline = true;
         goOffline(event);
     }
 
@@ -175,7 +171,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      */
     public void forceOnline() {
         VConsole.error("Going online due to a force online call.");
-        setForcedOffline(false);
+        forcedOffline = false;
         resume();
     }
 
@@ -208,10 +204,10 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      * is notified with offline events from the parent when it is embedded in an iframe.
      *
      * This block has a couple of hacks to force the app to go off-line:
-     *    $wnd.tkGoOffline() and $wnd.tkGoOnline()
+     *   tkGoOffline() tkGoOnline()
      *
-     * Most code here is for fixing android firing messages and setting offline flags
-     * in wrong ways.
+     * NOTE: Most code here is for fixing android bugs firing wrong events and setting
+     * erroneously online flags when it is inside webview.
      */
     private native void configureApplicationOfflineEvents() /*-{
         var _this = this;
@@ -223,7 +219,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
           _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::goOffline(*)(ev);
         }
         function online() {
-          if (!@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline) {
+          if (!_this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline) {
             console.log(">>> going online.");
             _this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::resume()();
           } else {
@@ -233,20 +229,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         function check() {
           console.log(">>> ckeck online flag " + $wnd.navigator.onLine);
           ($wnd.navigator.onLine ? online : offline)();
-        }
-        function message(msg) {
-          console.log(">>> parent message " + msg);
-          if (/^(cordova-.+)$/.test(msg)) {
-            hasCordovaEvents = true;
-            // Take an action depending on the message
-            if (msg == 'cordova-offline') {
-              offline();
-            } else if (msg == 'cordova-online') {
-              online();
-            } // TODO: handle pause & resume messages
-            return true;
-          }
-          return false;
         }
 
         // Export a couple of functions for allowing developer to switch on/offline from JS console
@@ -260,8 +242,7 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         // When offline is forced make any XHR fail
         var realSend = $wnd.XMLHttpRequest.prototype.send;
         $wnd.XMLHttpRequest.prototype.send = function() {
-          console.log(">>> send " + @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline);
-          if (@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline) {
+          if (_this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline) {
             throw "OFF_LINE_MODE_FORCED";
           } else {
             realSend.apply(this, arguments);
@@ -271,43 +252,30 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         // Listen to HTML5 offline-online events
         if ($wnd.navigator.onLine != undefined) {
             $wnd.addEventListener("offline", function() {
-               console.log(">>> html5 offline event received, ignored=" + hasCordovaEvents);
                if (!hasCordovaEvents) offline();
             }, false);
             $wnd.addEventListener("online", function() {
-               console.log(">>> html5 online event received, ignored=" + hasCordovaEvents);
                if (!hasCordovaEvents) online();
             }, false);
             // use HTML5 to test whether connection is available when the app starts
             if (!$wnd.navigator.onLine) {
-              console.log(">>> html5 onLine status=" + $wnd.navigator.onLine);
               offline();
             }
         }
 
-        // Redefine HTML-5 onLine indicator.
-        // This fixes the issue of android inside phonegap returning erroneus values
-        // allowing old vaadin apps based on this approach continue working
-        $wnd.navigator.__defineSetter__('onLine', function() {});
-        $wnd.navigator.__defineGetter__('onLine', function() {
-          return @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::online &&
-                !@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline;
+        // Redefine the HTML-5 onLine indicator.
+        // This fixes the issue of android inside phonegap returning erroneus values.
+        // It allows old vaadin apps based on testing 'onLine' flag continuing working.
+        Object.defineProperty($wnd.navigator, 'onLine', {
+          set: function() {},
+          get: function() {
+            return @com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::online &&
+                  !_this.@com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineModeEntrypoint::forcedOffline;
+          }
         });
+
         // Sometimes events are not passed to the app because of paused, we use a timer as well.
         setInterval(check, 30000);
-
-        ///// CORDOVA //////
-        // These flags only work in android.
-        // if (!$wnd._cordovaNative && !$wnd._nativeReady) {return}
-
-        // Use postMessage approach to go online-offline, useful when the
-        // application is embedded in a Cordova iframe, so as it
-        // can pass network status messages to the iframe.
-        if (typeof(window.postMessage) === 'function') {
-          $wnd.addEventListener("message", function(ev) {
-            message(ev.data);
-          }, false);
-        }
 
         // Listen to Cordova specific online/off-line stuff
         // this needs cordova.js to be loaded in the current page.
@@ -322,46 +290,25 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
           }
         }
 
-        // Notify parent cordova container about the app was loaded.
-        if ($wnd.parent && $wnd.parent.window && $wnd.parent.window.postMessage) {
+        // Use postMessage approach to go online-offline, useful when the
+        // application is embedded in a Cordova iframe, so as it
+        // can pass network status messages to the iframe.
+        if ($wnd.postMessage) {
+          $wnd.addEventListener("message", function(ev) {
+            var msg = ev.data;
+            console.log(">>> received window message " + msg);
+            if (/^(cordova-.+)$/.test(msg)) {
+              hasCordovaEvents = true;
+              // Take an action depending on the message
+              if (msg == 'cordova-offline') {
+                offline();
+              } else if (msg == 'cordova-online') {
+                online();
+              } // TODO: handle pause & resume messages
+            }
+          }, false);
+          // Notify parent cordova container about the app was loaded.
           $wnd.parent.window.postMessage("touchkit-ready", "*");
         }
     }-*/;
-
-    /*
-     * We save forced off-line in localstorage to continue off-line when we
-     * reload the page.
-     */
-    private void setForcedOffline(boolean forced) {
-        forcedOffline = forced;
-        if (Storage.isSessionStorageSupported()) {
-            if (forced) {
-                Storage.getSessionStorageIfSupported().setItem(TK_OFFLINE, "1");
-            } else {
-                Storage.getSessionStorageIfSupported().removeItem(TK_OFFLINE);
-            }
-        }
-    }
-
-    /*
-     * Restore off-line flag from localStorage
-     */
-    private void restoreForcedOffline() {
-        if (Storage.isSessionStorageSupported()) {
-            forcedOffline = Storage.getSessionStorageIfSupported()
-                    .getItem(TK_OFFLINE) != null;
-
-            // Only used when when we reload the app with forcedOffline.
-            // We have to delay because the online UI takes a while to
-            // be available and it could overlap the off-line screen
-            if (forcedOffline) {
-                new Timer() {
-                    @Override
-                    public void run() {
-                        goOffline(OfflineMode.ACTIVATED_BY_REQUEST);
-                    }
-                }.schedule(1000);
-            }
-        }
-    }
 }
