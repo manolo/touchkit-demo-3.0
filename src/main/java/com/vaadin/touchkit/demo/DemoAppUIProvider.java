@@ -11,7 +11,8 @@ public class DemoAppUIProvider extends UIProvider {
     @Override
     public Class<? extends UI> getUIClass(UIClassSelectionEvent event) {
         String userAgent = event.getRequest().getHeader("user-agent").toLowerCase();
-        if (overrideMobileUA() || userAgent.contains("mobile")) {
+        boolean mobileParameter = event.getRequest().getParameter("mobile") != null;
+        if (overrideMobileUA() || userAgent.contains("mobile") || mobileParameter) {
             return DemoAppTouchKitUI.class;
         } else {
             return DemoAppFallbackUI.class;

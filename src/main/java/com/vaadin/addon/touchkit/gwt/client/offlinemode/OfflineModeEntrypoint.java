@@ -31,12 +31,9 @@ import com.vaadin.client.VConsole;
 public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         CommunicationErrorHandler {
 
-    private static final String TK_OFFLINE = "TkOffline";
-
     private static OfflineModeEntrypoint instance;
     private static OfflineMode offlineModeApp = GWT.create(OfflineMode.class);
     private static boolean online = true;
-
 
     private OfflineModeConnector offlineModeConn = null;
     private ActivationEvent lastOfflineEvent = null;
