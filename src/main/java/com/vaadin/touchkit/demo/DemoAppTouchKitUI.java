@@ -1,6 +1,5 @@
 package com.vaadin.touchkit.demo;
 
-import com.vaadin.addon.touchkit.extensions.OfflineMode;
 //import com.vaadin.addon.touchkit.extensions.TouchKitIcon;
 import com.vaadin.addon.touchkit.ui.NavigationManager;
 import com.vaadin.addon.touchkit.ui.TabBarView;
@@ -35,11 +34,5 @@ public class DemoAppTouchKitUI extends UI {
         tab = tabBarView.addTab(new Label("Tab 3"), "Tab 3");
         //tab.setIcon(FontAwesome.DOWNLOAD);
         setContent(tabBarView);
-
-        OfflineMode offlineMode = new OfflineMode();
-        offlineMode.extend(this);
-        offlineMode.setPersistentSessionCookie(true);
-        offlineMode.setOfflineModeEnabled(true);
-        offlineMode.setOfflineModeTimeout(15);
     }
 }

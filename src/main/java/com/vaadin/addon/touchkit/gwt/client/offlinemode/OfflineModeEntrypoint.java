@@ -2,12 +2,15 @@ package com.vaadin.addon.touchkit.gwt.client.offlinemode;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.event.shared.HasHandlers;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.ActivationEvent;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.OfflineEvent;
 import com.vaadin.addon.touchkit.gwt.client.offlinemode.OfflineMode.OnlineEvent;
 import com.vaadin.addon.touchkit.gwt.client.vcom.OfflineModeConnector;
+import com.vaadin.client.ApplicationConfiguration;
 import com.vaadin.client.ApplicationConnection;
 import com.vaadin.client.ApplicationConnection.CommunicationErrorHandler;
 import com.vaadin.client.ApplicationConnection.CommunicationHandler;
@@ -30,21 +33,21 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
 
     private static final String TK_OFFLINE = "TkOffline";
 
+    private static OfflineModeEntrypoint instance;
     private static OfflineMode offlineModeApp = GWT.create(OfflineMode.class);
+    private static boolean online = true;
+
 
     private OfflineModeConnector offlineModeConn = null;
-
-    private static boolean online = true;
+    private ActivationEvent lastOfflineEvent = null;
     private boolean forcedOffline = false;
 
-    private ActivationEvent lastOfflineEvent = null;
     private HasHandlers eventBus = null;
+    private ApplicationConnection connection = null;
 
     public static boolean isNetworkOnline() {
         return online;
     }
-
-    private static OfflineModeEntrypoint instance;
 
     public static OfflineModeEntrypoint get() {
         // Shoulden't happen unless someone does not inherits TK module
@@ -68,6 +71,18 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
         // We always go off-line at the beginning until we receive
         // a Vaadin online response
         goOffline(OfflineMode.APP_STARTING);
+
+        // Loop until vaadin application connection is loaded.
+        Scheduler.get().scheduleFixedDelay(new RepeatingCommand() {
+            int cont = 0;
+            public boolean execute() {
+                if (!ApplicationConfiguration.getRunningApplications().isEmpty()) {
+                    configureHandlers(ApplicationConfiguration
+                            .getRunningApplications().iterator().next());
+                }
+                return cont++ < 50 && connection == null;
+            }
+        }, 100);
     }
 
     /**
@@ -77,16 +92,21 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      */
     public void setOfflineModeConnector(OfflineModeConnector oc) {
         offlineModeConn = oc;
-        eventBus = getEventBus(offlineModeConn.getConnection());
-        ApplicationConnection conn = offlineModeConn.getConnection();
-        conn.addHandler(RequestStartingEvent.TYPE, this);
-        conn.addHandler(ResponseHandlingStartedEvent.TYPE, this);
-        conn.addHandler(ResponseHandlingEndedEvent.TYPE, this);
-        conn.setCommunicationErrorDelegate(this);
+        configureHandlers(oc.getConnection());
+    }
 
-        // If we get the connection means we are online, so we force
-        // online even thought we were online already.
-        forceResume();
+    private void configureHandlers(ApplicationConnection conn) {
+        if (connection == null) {
+            VConsole.log("Online Application has been loaded.");
+            connection = conn;
+            eventBus = getEventBus(conn);
+            conn.addHandler(RequestStartingEvent.TYPE, this);
+            conn.addHandler(ResponseHandlingStartedEvent.TYPE, this);
+            conn.addHandler(ResponseHandlingEndedEvent.TYPE, this);
+            conn.setCommunicationErrorDelegate(this);
+
+            forceOnline();
+        }
     }
 
     // This is a hack, in 7.2 we will have access to the eventBus via ApplicationConnection
@@ -113,15 +133,16 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
      * reactivating online one.
      */
     public void resume() {
+        VConsole.log("resume()");
         if (!online && !forcedOffline) {
             VConsole.log("Network Back ONLINE");
             online = true;
-            if (offlineModeConn != null) {
+            if (connection != null) {
                 lastOfflineEvent = null;
                 if (offlineModeApp.isActive()) {
                     offlineModeApp.deactivate();
                 }
-                offlineModeConn.getConnection().setApplicationRunning(true);
+                connection.setApplicationRunning(true);
                 eventBus.fireEvent(new OnlineEvent());
             } else {
                 lastOfflineEvent = OfflineMode.ONLINE_APP_NOT_STARTED;
@@ -148,8 +169,8 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
             }
             lastOfflineEvent = event;
 
-            if (offlineModeConn != null) {
-                offlineModeConn.getConnection().setApplicationRunning(false);
+            if (connection != null) {
+                connection.setApplicationRunning(false);
                 eventBus.fireEvent(new OfflineEvent(event));
             }
         }
@@ -192,7 +213,6 @@ public class OfflineModeEntrypoint implements EntryPoint, CommunicationHandler,
 
     @Override
     public void onResponseHandlingEnded(ResponseHandlingEndedEvent e) {
-        VConsole.error("onResponseHandlingEnded ");
         resume();
     }
 
